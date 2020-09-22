@@ -5,23 +5,31 @@ import sys
 #https://www.pygame.org/docs/ref/mouse.html
 #TO DO:
 #add buttons to start over
+#add rules
+#adjust screen size to board size? probably not.....
 
     
 p1,p2,empty = 1,2,0 
-size = (700,500)        #screen width,height
+
 board_colors = [(0,250,154),(119,136,153),(255,0,0)]  
 player_colors = [(255,255,255),(0,0,0)]
-if len(sys.argv) <2 or (not sys.argv[1].isnumeric()) or int(sys.argv[1]) > 25:   #max dim = 25
-    dim = 5  #if not specified, set default dim to 5
+if len(sys.argv) <3 or (not sys.argv[1].isnumeric()) or int(sys.argv[1]) > 25 or (not sys.argv[2].isnumeric()) or int(sys.argv[2]) > 25:   #max dim = 25
+    dim = [6,5]  #if not specified, set default dim to 5
+
+
+size = (700,500)        #screen width,height
 else:
-    dim = int(sys.argv[1])
-square_size = size[1] // dim
+    dim = [int(sys.argv[1]),int(sys.argv[2])]
+if dim[0] > dim[1]:
+    square_size = size[1] // dim[0]
+else: 
+    square_size = size[1] // dim[1]
 
 def check_finished(B):
     #check if there are any moves left to make, ie if a black and white cell are on horizontally or vertically adjacent cells
     done = True
-    for row in range(dim):
-        for col in range(dim):
+    for row in range(dim[0]):
+        for col in range(dim[1]):
             if B[row][col] == 1:
                 done = check_neighbors(B, row, col, 1)
             elif B[row][col] == 2:
@@ -40,13 +48,13 @@ def check_neighbors(B, row, col, player):
     if row > 0: 
         if B[row-1][col] == check:
             return False
-    if row < dim-1:
+    if row < dim[0]-1:
         if B[row+1][col] == check: 
             return False
     if col > 0:
         if B[row][col-1] == check: 
             return False
-    if col < dim-1:
+    if col < dim[1]-1:
         if B[row][col+1] == check: 
             return False
     return True
@@ -58,12 +66,13 @@ def displayText(screen, txt1, txt2, position):
     else: 
         div1 = 2.25
         div2 = 1.75
+    offset = 170
     font = pygame.font.SysFont('Times New Roman', 25)
     text = font.render(txt1, False, (255,255,255))
-    text_location = ((dim*square_size + (size[0] - dim*square_size) - 170), size[1] //div1)
+    text_location = ((dim[1]*square_size + (size[0] - dim[1]*square_size) - offset), size[1] //div1)
     screen.blit(text, text_location)
     text = font.render(txt2, False, (255,255,255))
-    text_location = ((dim*square_size + (size[0] - dim*square_size) - 170), size[1] //div2)
+    text_location = ((dim[1]*square_size + (size[0] - dim[1]*square_size) - offset), size[1] //div2)
     screen.blit(text, text_location)
 
 
@@ -83,14 +92,14 @@ def initialBoard(B,players,screen):
     #create intial board to store occupied/empty info, fill entire board with stones for p1,p2
     B = []
     players = [p1,p2]
-    for row in range(dim):
+    for row in range(dim[0]):
         B.append([]) 
-        for col in range(dim):
+        for col in range(dim[1]):
             B[row].append(players[(row+col)%2])  #B = [[1, 2, 1, 2, 1], [2, 1, 2, 1, 2], ...]
 
     #draw inital grid on screen, fill with stones
-    for row in range(dim):
-        for col in range(dim):
+    for row in range(dim[0]):
+        for col in range(dim[1]):
             if B[row][col] == 1 or B[row][col] == 2:
                 idx = (B[row][col]-1)   #for colors
                 screen.fill(board_colors[idx], (col * square_size, row * square_size, square_size, square_size) )
@@ -144,7 +153,7 @@ def main():
         #mouse click
         if event.type == pygame.MOUSEBUTTONDOWN:
             click_posn = pygame.mouse.get_pos()
-            if click_posn[0] < square_size * dim and click_posn[1] < square_size * dim: #if click within bounds of board
+            if click_posn[0] < square_size * dim[1] and click_posn[1] < square_size * dim[0]: #if click within bounds of board
                 idx_col = click_posn[0] // square_size 
                 idx_row = click_posn[1] // square_size 
                 if player == B[idx_row][idx_col]:   # check if player clicked own stone
@@ -160,7 +169,7 @@ def main():
                         placeStone((idx_row,idx_col), player, screen, B) #replace opponent's stone with own
                         B[idx_row][idx_col] = player #update board 
                         moves += 1
-                        screen.fill(background_color, (dim*square_size,0,size[0]-dim*square_size, size[1]))
+                        screen.fill(background_color, (size[0]-170,0,size[0],170))#                     dim[1]*square_size,0,size[0]-dim[0]*square_size, size[1]))
                         displayText(screen, "Moves: ", str(moves), "top") #update nr of moves
 
 
