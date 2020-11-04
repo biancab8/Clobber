@@ -7,6 +7,7 @@ import sys
 #add buttons to start over
 #add rules
 #adjust screen size to board size? probably not.....
+# Do: BFS w/ pruning...count nr of other color's stones in a row..just go there...
 
     
 p1,p2,empty = 1,2,0 
@@ -15,11 +16,9 @@ board_colors = [(0,250,154),(119,136,153),(255,0,0)]
 player_colors = [(255,255,255),(0,0,0)]
 if len(sys.argv) <3 or (not sys.argv[1].isnumeric()) or int(sys.argv[1]) > 25 or (not sys.argv[2].isnumeric()) or int(sys.argv[2]) > 25:   #max dim = 25
     dim = [6,5]  #if not specified, set default dim to 5
-
-
-size = (700,500)        #screen width,height
-else:
+else: 
     dim = [int(sys.argv[1]),int(sys.argv[2])]
+size = (700,500)        #screen width,height
 if dim[0] > dim[1]:
     square_size = size[1] // dim[0]
 else: 
