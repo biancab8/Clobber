@@ -1,22 +1,19 @@
-import time
-import pygame
-import sys
+import time, pygame, sys
 from collections import deque
 #https://www.youtube.com/watch?v=zahxNZYvvj8
 #https://www.pygame.org/docs/ref/mouse.html
 #command line: clobber.py dim1 dim2
 #TO DO:
-#add buttons to start over
-#add rules
 #adjust screen size to board size? probably not.....
-# Do: BFS w/ pruning...count nr of other color's stones in a row..just go there...
-#rn: only checking path length for stright lines....need to check maze like too
+# do: add can enter board position
+# check_neighbors returns false if it has opponent nbr...doesn't make sense...shoudl probably be true
 
-    
+
 p1,comp,empty = 1,2,0 
+board_colors = [(0,250,154),(119,136,153),(255,0,0)]  # squares colors
+player_colors = [(255,255,255),(0,0,0)]  # white, black
 
-board_colors = [(0,250,154),(119,136,153),(255,0,0)]  
-player_colors = [(255,255,255),(0,0,0)]
+#check for input of dimensions
 if len(sys.argv) <3 or (not sys.argv[1].isnumeric()) or int(sys.argv[1]) > 25 or (not sys.argv[2].isnumeric()) or int(sys.argv[2]) > 25:   #max dim = 25
     dim = [6,5]  #if not specified, set default dim to 5
 else: 
@@ -26,6 +23,7 @@ if dim[0] > dim[1]:
     square_size = size[1] // dim[0]
 else: 
     square_size = size[1] // dim[1]
+
 
 def check_finished(B):
     #check if there are any moves left to make, ie if a black and white cell are on horizontally or vertically adjacent cells
@@ -43,8 +41,7 @@ def check_finished(B):
 
 def check_neighbors(B, row, col, player, opt):
     #returns False if it has a neighbor that has an opponent's stone on it (veritcal/horizontal neighbors only)
-    #if opt = 1: return cell where neighbor is
-    print("checking neighrbs of row col", row, col)
+    #if opt = 1: return the cell where neighbor is
     if player == 1:
         check = 2
     else:
@@ -90,7 +87,10 @@ def displayText(screen, txt1, txt2, position):
     text = font.render(txt2, False, (255,255,255))
     text_location = ((dim[1]*square_size + (size[0] - dim[1]*square_size) - offset), size[1] //div2)
     screen.blit(text, text_location)
-
+    font = pygame.font.SysFont('Times New Roman', 17)
+    text = font.render("hit space to start over", False, (255,255,255))
+    text_location = ((dim[1]*square_size + (size[0] - dim[1]*square_size) - offset), size[1] //1.25)
+    screen.blit(text, text_location)
 
 def eraseSquare(selected_square, screen, B):
     if (selected_square[0] % 2 == 0 and selected_square[1] % 2 == 0) or (selected_square[0] % 2 == 1 and selected_square[1] % 2 == 1):  #if board color 1 field
@@ -104,7 +104,7 @@ def placeStone(square, player, screen, B):
     pygame.draw.circle(screen,player_colors[player-1], (square[1]*square_size+square_size//2, square[0]*square_size+square_size//2),square_size//2 - square_size//10 )
     B[square[0]][square[1]] = player
 
-def initialBoard(B,players,screen):
+def setInitialBoard(B,players,screen):
     #create intial board to store occupied/empty info, fill entire board with stones for p1,comp
     B = []
     players = [p1,comp]
@@ -112,7 +112,6 @@ def initialBoard(B,players,screen):
         B.append([]) 
         for col in range(dim[1]):
             B[row].append(players[(row+col)%2])  #B = [[1, 2, 1, 2, 1], [2, 1, 2, 1, 2], ...]
-
     #draw inital grid on screen, fill with stones
     for row in range(dim[0]):
         for col in range(dim[1]):
@@ -120,11 +119,12 @@ def initialBoard(B,players,screen):
                 idx = (B[row][col]-1)   #for colors
                 screen.fill(board_colors[idx], (col * square_size, row * square_size, square_size, square_size) )
                 pygame.draw.circle(screen,player_colors[idx], (col * square_size+square_size//2, row * square_size+square_size//2),square_size//2 - square_size//10 )
-
+    displayText(screen, "Moves: ", "0", "top")
     return B
 
 
 def get_path_length(B, row, col):
+    # from cell (row,col) get the longest path of connected stones of own color
     offsets = [[0,-1], [0,1], [1,0], [-1,0]]
     seen = []
     length = 1
@@ -135,20 +135,15 @@ def get_path_length(B, row, col):
         cell_coords = fringe.popleft()
         seen.append(cell_coords)
         for offset in offsets: 
-            # print("row, col", row, col)
-            # print("offset", offset)
             if cell_coords[0] + offset[0] >= 0 and cell_coords[0] + offset[0] < dim[0] and cell_coords[1] + offset[1] >= 0 and cell_coords[1] + offset[1] < dim[1]:
                 new_cell = [cell_coords[0]+offset[0],cell_coords[1]+offset[1]]
                 if new_cell not in seen: 
-                    print(new_cell)
                     if B[new_cell[0]][new_cell[1]] == 1 and new_cell not in fringe:
-                        # print("adding to fringe: ", new_cell)
                         fringe.append(new_cell)
                         add = True
         if add == True: 
             length += 1
             add = False 
-    # print("row, col, len", row, col, length)
     return length
      
 
@@ -159,9 +154,7 @@ def find_best_move(B):
     best_cell_so_far = []
     best_move_from = []
     for row in range(dim[0]): 
-        print("rowwww--------------------------------", row)
         for col in range(dim[1]):
-            print("colllllllllllllllllllllllllllllllll", col)
             #if white (human's) stone and has black nbr:  (note: check_neighbors returns false if there is a black nbr)
             if B[row][col] == 1 and check_neighbors(B, row, col, p1, 0) == False:
                 #find max nr of white stones in a row
@@ -169,68 +162,66 @@ def find_best_move(B):
                 if length > best_len_so_far: 
                     best_len_so_far = length 
                     best_cell_so_far = [row,col]
-                    print("best length so far", best_len_so_far)
-                    print("best cell sof ar", best_cell_so_far)
     best_move_from = check_neighbors(B, best_cell_so_far[0], best_cell_so_far[1], p1, 1)
-    print("best ---------------------------", best_move_from)
     return [best_move_from, best_cell_so_far]
 
 
-def main():
-    # initialize all pygame modules
-    pygame.init()
+def displayWinner(player, screen):
+    if player == 1:
+        winner = "Black"
+    else:
+        winner = "White"
+    displayText(screen, "Game Over", winner + " wins", "bottom")
 
-    # create a pygame display window
+
+def main():
+    # initialize all pygame modules, create pygame display window
+    pygame.init()
     screen = pygame.display.set_mode(size)
+    clock = pygame.time.Clock()     # = how fast the screen updates
     pygame.display.set_caption("Clobber")
     background_color = (47,79,79)
     screen.fill(background_color)  #background
 
-    
-    #create intial board to store occupied/empty info, fill entire board with stones for p1,p2
-    B = []
+    #create and display intial board, fill entire board with stones for p1, p2
     players = [p1,comp]
-    B = initialBoard(B, players, screen)
-    displayText(screen, "Moves: ", "0", "top")
+    B = setInitialBoard([], players, screen)
 
-    clock = pygame.time.Clock()     # = how fast the screen updates
     player = p1
     square_selected = False
-    stop = False
+    cont = True
     moves =0
-    while not stop:
-        # check if win
-        if check_finished(B) == True:
-            if player == 1:
-                winner = "Black"
-            else:
-                winner = "White"
-            displayText(screen, "Game Over", winner + " wins", "bottom")
-            stop = True
+    while cont:
+        if check_finished(B) == True:  # check if win
+            displayWinner(player, screen)
         pygame.display.flip() # display screen
         clock.tick(60) # limit to 60 frames per second
-        mouse_down = False
         play = False
-        while not play:
+        while not play:  # pause game while wait for p1 event to happen
             event = pygame.event.wait()
             if event.type == pygame.QUIT: 
-                stop = True 
                 pygame.quit()
                 sys.exit() 
+            elif event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE: # start over
+                screen.fill(background_color)
+                B = setInitialBoard([], players, screen)
+                player = p1
+                square_selected = False
+                moves =0
+                pygame.display.flip() # display screen
             elif player == 1 and event.type == pygame.MOUSEBUTTONDOWN:
                 play = True
-
-        
-        #mouse click, human to move
+            
+        #human to move
         if player == 1 and play == True: 
                 click_posn = pygame.mouse.get_pos()
                 if click_posn[0] < square_size * dim[1] and click_posn[1] < square_size * dim[0]: #if click within bounds of board
                     idx_col = click_posn[0] // square_size 
                     idx_row = click_posn[1] // square_size 
                     if player == B[idx_row][idx_col]:   # check if player clicked own stone
-                        if square_selected != False:       # selects a different stone 
-                            eraseSquare(square_selected, screen, B) # erase background red from previously selected stone
-                            placeStone(square_selected, player, screen, B) # then fill again with correct stone 
+                        if square_selected != False:       # picks different (own) stone
+                            eraseSquare(square_selected, screen, B) # erase red background from previously selected stone
+                            placeStone(square_selected, player, screen, B) # fill again with correct stone 
                         square_selected = (idx_row,idx_col)  #newly selected stone
                         screen.fill(board_colors[2], (idx_col * square_size, idx_row * square_size,square_size,square_size))  #paint red
                         placeStone((idx_row, idx_col), player, screen, B)
@@ -238,9 +229,9 @@ def main():
                         if (idx_row == square_selected[0] and (square_selected[1]-1 <= idx_col <= square_selected[1] +1)) or (idx_col == square_selected[1] and (square_selected[0] -1<= idx_row <= square_selected[0] +1)): #check if legal move, ie verical or horizontal neighbor
                             eraseSquare(square_selected, screen, B) #erase square from which player moved their stone
                             placeStone((idx_row,idx_col), player, screen, B) #replace opponent's stone with own
-                            B[idx_row][idx_col] = player #update board 
+                            B[idx_row][idx_col] = player #update board state
                             moves += 1
-                            screen.fill(background_color, (size[0]-170,0,size[0],170))#                     dim[1]*square_size,0,size[0]-dim[0]*square_size, size[1]))
+                            screen.fill(background_color, (size[0]-170,0,size[0],170))
                             displayText(screen, "Moves: ", str(moves), "top") #update nr of moves
                             if player == p1: 
                                 player = comp
@@ -258,16 +249,9 @@ def main():
             play = False
             player = 1
 
-            pygame.display.flip() # display screen
-            clock.tick(60) # limit to 60 frames per second
-    
-
-    # Close the window, quit game
-    # pygame.quit()
-    while True:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
+    # Close game if click x
+    if event.type == pygame.QUIT:
+        pygame.quit()
 
 
 main()
