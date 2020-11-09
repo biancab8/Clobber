@@ -14,8 +14,8 @@ board_colors = [(0,250,154),(119,136,153),(255,0,0)]  # squares colors
 player_colors = [(255,255,255),(0,0,0)]  # white, black
 
 #check for input of dimensions
-if len(sys.argv) <3 or (not sys.argv[1].isnumeric()) or int(sys.argv[1]) > 25 or (not sys.argv[2].isnumeric()) or int(sys.argv[2]) > 25:   #max dim = 25
-    dim = [6,5]  #if not specified, set default dim to 5
+if len(sys.argv) <3 or (not sys.argv[1].isnumeric()) or int(sys.argv[1]) > 25 or (not sys.argv[2].isnumeric()) or int(sys.argv[2]) > 25 or int(sys.argv[2]) < 2:  #max dim = 25
+    dim = [5,5]  #if not specified, set default dim to 5
 else: 
     dim = [int(sys.argv[1]),int(sys.argv[2])]
 size = (700,500)        #screen width,height
