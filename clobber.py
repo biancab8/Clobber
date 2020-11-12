@@ -23,7 +23,10 @@ if dim[0] > dim[1]:
     square_size = size[1] // dim[0]
 else: 
     square_size = size[1] // dim[1]
-
+if len(sys.argv) > 3 and sys.argv[3].isnumeric() and int(sys.argv[3]) > 0 and int(sys.argv[3]) < 3:
+    opt = int(sys.argv[3])
+else:
+    opt = 1 #default: longest connected component algo 
 
 def check_finished(B):
     #check if there are any moves left to make, ie if a black and white cell are on horizontally or vertically adjacent cells
@@ -149,8 +152,13 @@ def get_path_length(B, row, col):
 
 def find_best_move(B):
     #find best move for comp based on:
-    #look at best case scenario....choose neighbor with most possible moves in a row
-    best_len_so_far= 0
+    #if opt == 1: longest connected component of opponent's stones
+    #if opt == 2: shortest connected component of opponent's stones
+    if opt == 1:    #largest connected component
+        best_len_so_far = 0
+    else:           #shortest connected component  
+        best_len_so_far = float("inf")
+    print(best_len_so_far)
     best_cell_so_far = []
     best_move_from = []
     for row in range(dim[0]): 
@@ -159,7 +167,10 @@ def find_best_move(B):
             if B[row][col] == 1 and check_neighbors(B, row, col, p1, 0) == False:
                 #find max nr of white stones in a row
                 length = get_path_length(B,row,col)
-                if length > best_len_so_far: 
+                if opt == 1 and length > best_len_so_far: 
+                    best_len_so_far = length 
+                    best_cell_so_far = [row,col]
+                elif opt == 2 and length < best_len_so_far:
                     best_len_so_far = length 
                     best_cell_so_far = [row,col]
     best_move_from = check_neighbors(B, best_cell_so_far[0], best_cell_so_far[1], p1, 1)
