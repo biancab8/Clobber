@@ -23,8 +23,10 @@ else:
     square_size = size[1] // dim[1]
 if len(sys.argv) > 3 and sys.argv[3].isnumeric() and int(sys.argv[3]) > 0 and int(sys.argv[3]) < 3:
     opt = int(sys.argv[3])
+elif len(sys.argv) == 2 and sys.argv[1].isnumeric():
+    opt = int(sys.argv[1])
 else:
-    opt = 1 #default: longest connected component algo 
+    opt = 2 #default: shortest connected component algo 
 
 def check_finished(B):
     #check if there are any moves left to make, ie if a black and white cell are on horizontally or vertically adjacent cells
