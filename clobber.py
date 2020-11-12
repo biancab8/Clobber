@@ -2,12 +2,10 @@ import time, pygame, sys
 from collections import deque
 #https://www.youtube.com/watch?v=zahxNZYvvj8
 #https://www.pygame.org/docs/ref/mouse.html
-#command line: clobber.py dim1 dim2
-#TO DO:
-#adjust screen size to board size? probably not.....
-# do: add can enter board position
-# check_neighbors returns false if it has opponent nbr...doesn't make sense...shoudl probably be true
-
+#command line: clobber.py dim1 dim2 opt
+    #dim1 = nr of rows, dim2 = nr of cols
+    #opt = 1: comp will choose a stone from the largest connected component of white stones
+    #opt = 2: comp will choose a stone from the smallest connected component of white stones
 
 p1,comp,empty = 1,2,0 
 board_colors = [(0,250,154),(119,136,153),(255,0,0)]  # squares colors
@@ -158,7 +156,6 @@ def find_best_move(B):
         best_len_so_far = 0
     else:           #shortest connected component  
         best_len_so_far = float("inf")
-    print(best_len_so_far)
     best_cell_so_far = []
     best_move_from = []
     for row in range(dim[0]): 
