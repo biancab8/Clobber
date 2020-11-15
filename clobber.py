@@ -1,4 +1,4 @@
-import time, pygame, sys
+import time, pygame, sys, random
 from collections import deque
 #https://www.youtube.com/watch?v=zahxNZYvvj8
 #https://www.pygame.org/docs/ref/mouse.html
@@ -21,7 +21,7 @@ if dim[0] > dim[1]:
     square_size = size[1] // dim[0]
 else: 
     square_size = size[1] // dim[1]
-if len(sys.argv) > 3 and sys.argv[3].isnumeric() and int(sys.argv[3]) > 0 and int(sys.argv[3]) < 3:
+if len(sys.argv) > 3 and sys.argv[3].isnumeric() and int(sys.argv[3]) > 0 and int(sys.argv[3]) < 4:
     opt = int(sys.argv[3])
 elif len(sys.argv) == 2 and sys.argv[1].isnumeric():
     opt = int(sys.argv[1])
@@ -154,7 +154,18 @@ def find_best_move(B):
     #find best move for comp based on:
     #if opt == 1: longest connected component of opponent's stones
     #if opt == 2: shortest connected component of opponent's stones
-    if opt == 1:    #largest connected component
+    #if opt == 3: random move
+    if opt == 3: 
+        go = True
+        while go == True:
+            rowIdx = random.randint(0,dim[0]-1)
+            colIdx = random.randint(0,dim[1]-1)
+            if B[rowIdx][colIdx] == 1 and check_neighbors(B, rowIdx, colIdx, p1, 0) == False: 
+                best_cell_so_far = [rowIdx, colIdx]
+                go = False
+        best_move_from = check_neighbors(B, best_cell_so_far[0], best_cell_so_far[1], p1, 1)
+        return [best_move_from, best_cell_so_far]
+    elif opt == 1:    #largest connected component
         best_len_so_far = 0
     else:           #shortest connected component  
         best_len_so_far = float("inf")
@@ -174,6 +185,7 @@ def find_best_move(B):
                     best_cell_so_far = [row,col]
     best_move_from = check_neighbors(B, best_cell_so_far[0], best_cell_so_far[1], p1, 1)
     return [best_move_from, best_cell_so_far]
+
 
 
 def displayWinner(player, screen):
