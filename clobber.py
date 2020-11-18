@@ -1,18 +1,21 @@
-import time, pygame, sys
+import time, pygame, sys, random
 from collections import deque
 #https://www.youtube.com/watch?v=zahxNZYvvj8
 #https://www.pygame.org/docs/ref/mouse.html
-#command line: clobber.py dim1 dim2 opt
+#how to run: clobber.py dim1 dim2 opt
     #dim1 = nr of rows, dim2 = nr of cols
-    #opt = 1: comp will choose a stone from the largest connected component of white stones
-    #opt = 2: comp will choose a stone from the smallest connected component of white stones
+    #opt = 1: comp will choose to clobber a stone from the largest connected component of white stones
+    #opt = 2: comp will choose to clobber a stone from the smallest connected component of white stones
+    #opt = 3: comp will randomly choose a white stone to clobber
+# -> default: 5x5 board, opt = 2
 
 p1,comp,empty = 1,2,0 
 board_colors = [(0,250,154),(119,136,153),(255,0,0)]  # squares colors
 player_colors = [(255,255,255),(0,0,0)]  # white, black
 
-#check for input of dimensions
-if len(sys.argv) <3 or (not sys.argv[1].isnumeric()) or int(sys.argv[1]) > 25 or (not sys.argv[2].isnumeric()) or int(sys.argv[2]) > 25 or int(sys.argv[2]) < 2:  #max dim = 25
+#check for command line args, set size of board and algorithm option
+len_args = len(sys.argv)
+if len_args <3 or (not sys.argv[1].isnumeric()) or int(sys.argv[1]) > 25 or (not sys.argv[2].isnumeric()) or int(sys.argv[2]) > 25 or int(sys.argv[2]) < 2:  #max dim = 25
     dim = [5,5]  #if not specified, set default dim to 5
 else: 
     dim = [int(sys.argv[1]),int(sys.argv[2])]
@@ -21,30 +24,30 @@ if dim[0] > dim[1]:
     square_size = size[1] // dim[0]
 else: 
     square_size = size[1] // dim[1]
-if len(sys.argv) > 3 and sys.argv[3].isnumeric() and int(sys.argv[3]) > 0 and int(sys.argv[3]) < 3:
+if len_args > 3 and sys.argv[3].isnumeric() and int(sys.argv[3]) > 0 and int(sys.argv[3]) < 4:
     opt = int(sys.argv[3])
-elif len(sys.argv) == 2 and sys.argv[1].isnumeric():
+elif len_args == 2 and sys.argv[1].isnumeric():
     opt = int(sys.argv[1])
 else:
     opt = 2 #default: shortest connected component algo 
 
 def check_finished(B):
     #check if there are any moves left to make, ie if a black and white cell are on horizontally or vertically adjacent cells
-    done = True
+    finished = True
     for row in range(dim[0]):
         for col in range(dim[1]):
             if B[row][col] == 1:
-                done = check_neighbors(B, row, col, 1, 0)
+                finished = check_if_no_neighbors(B, row, col, 1, 0)
             elif B[row][col] == 2:
-                done = check_neighbors(B, row, col, 2, 0)
-            if done == False:
-                return done
-    return done
+                finished = check_if_no_neighbors(B, row, col, 2, 0)
+            if finished == False:
+                return finished
+    return finished
 
 
-def check_neighbors(B, row, col, player, opt):
-    #returns False if it has a neighbor that has an opponent's stone on it (veritcal/horizontal neighbors only)
-    #if opt = 1: return the cell where neighbor is
+def check_if_no_neighbors(B, row, col, player, opt):
+    #If the cell has a neighbor that has an opponent's stone on it, return false (veritcal/horizontal neighbors only)
+    #if opt = 1: return the cell where that neighbor is
     if player == 1:
         check = 2
     else:
@@ -84,21 +87,21 @@ def displayText(screen, txt1, txt2, position):
         div2 = 1.75
     offset = 170
     font = pygame.font.SysFont('Times New Roman', 25)
-    text = font.render(txt1, False, (255,255,255))
+    text = font.render(txt1, False, player_colors[0])
     text_location = ((dim[1]*square_size + (size[0] - dim[1]*square_size) - offset), size[1] //div1)
     screen.blit(text, text_location)
-    text = font.render(txt2, False, (255,255,255))
+    text = font.render(txt2, False, player_colors[0])
     text_location = ((dim[1]*square_size + (size[0] - dim[1]*square_size) - offset), size[1] //div2)
     screen.blit(text, text_location)
     font = pygame.font.SysFont('Times New Roman', 17)
-    text = font.render("hit space to start over", False, (255,255,255))
+    text = font.render("hit space to start over", False, player_colors[0])
     text_location = ((dim[1]*square_size + (size[0] - dim[1]*square_size) - offset), size[1] //1.25)
     screen.blit(text, text_location)
 
 def eraseSquare(selected_square, screen, B):
     if (selected_square[0] % 2 == 0 and selected_square[1] % 2 == 0) or (selected_square[0] % 2 == 1 and selected_square[1] % 2 == 1):  #if board color 1 field
         color = board_colors[0]
-    else:                                                                   #if board color 2 field
+    else:  #if board color 2 field
         color = board_colors[1]
     screen.fill(color, (selected_square[1] * square_size, selected_square[0] * square_size,square_size,square_size))   # erase stone that was just moved
     B[selected_square[0]][selected_square[1]] = empty 
@@ -127,7 +130,7 @@ def setInitialBoard(B,players,screen):
 
 
 def get_path_length(B, row, col):
-    # from cell (row,col) get the longest path of connected stones of own color
+    # starting from cell (row,col), get the length of the component of connected stones of own color
     offsets = [[0,-1], [0,1], [1,0], [-1,0]]
     seen = []
     length = 1
@@ -151,28 +154,38 @@ def get_path_length(B, row, col):
      
 
 def find_best_move(B):
-    #find best move for comp based on:
-    #if opt == 1: longest connected component of opponent's stones
-    #if opt == 2: shortest connected component of opponent's stones
-    if opt == 1:    #largest connected component
-        best_len_so_far = 0
-    else:           #shortest connected component  
-        best_len_so_far = float("inf")
-    best_cell_so_far = []
-    best_move_from = []
-    for row in range(dim[0]): 
-        for col in range(dim[1]):
-            #if white (human's) stone and has black nbr:  (note: check_neighbors returns false if there is a black nbr)
-            if B[row][col] == 1 and check_neighbors(B, row, col, p1, 0) == False:
-                #find max nr of white stones in a row
-                length = get_path_length(B,row,col)
-                if opt == 1 and length > best_len_so_far: 
-                    best_len_so_far = length 
-                    best_cell_so_far = [row,col]
-                elif opt == 2 and length < best_len_so_far:
-                    best_len_so_far = length 
-                    best_cell_so_far = [row,col]
-    best_move_from = check_neighbors(B, best_cell_so_far[0], best_cell_so_far[1], p1, 1)
+    #find best move for comp based on the algorithm choice: 
+    #if opt == 1: use longest connected component of opponent's stones
+    #if opt == 2: use shortest connected component of opponent's stones
+    #if opt == 3: find random move
+    if opt == 3: 
+        go = True
+        while go == True:
+            rowIdx = random.randint(0,dim[0]-1)
+            colIdx = random.randint(0,dim[1]-1)
+            if B[rowIdx][colIdx] == 1 and check_if_no_neighbors(B, rowIdx, colIdx, p1, 0) == False: 
+                best_cell_so_far = [rowIdx, colIdx]
+                go = False
+    else:           
+        if opt == 1:    #largest connected component
+            best_len_so_far = 0
+        else:           #shortest connected component
+            best_len_so_far = float("inf")
+        best_cell_so_far = []
+        best_move_from = []
+        for row in range(dim[0]): 
+            for col in range(dim[1]):
+                #if white (human's) stone and has black nbr:  (note: check_if_no_neighbors returns false if there is a black nbr)
+                if B[row][col] == 1 and check_if_no_neighbors(B, row, col, p1, 0) == False:
+                    #find max nr of white stones in a row
+                    length = get_path_length(B,row,col)
+                    if opt == 1 and length > best_len_so_far: 
+                        best_len_so_far = length 
+                        best_cell_so_far = [row,col]
+                    elif opt == 2 and length < best_len_so_far:
+                        best_len_so_far = length 
+                        best_cell_so_far = [row,col]
+    best_move_from = check_if_no_neighbors(B, best_cell_so_far[0], best_cell_so_far[1], p1, 1)
     return [best_move_from, best_cell_so_far]
 
 
