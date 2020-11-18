@@ -14,9 +14,10 @@ Optional Parameters:
 - board size:
   - the first number will be the number of rows, the second will be the number of columns.    
   - for example, **python clobber.py 5 6** will open a 5x6 board
-- algorithm to use. There are 2 algorithms to choose from: 
+- algorithm to use. There are 3 algorithms to choose from: 
   - if you choose option 1, the computer will always choose to capture a stone from the largest connected component of your color.  
   - if you choose option 2, the computer will always choose to capture a stone from the smallest connected component of your color. 
+  - if you choose option 3, the computer will randomly choose a stone to capture. 
   - for example, **python clobber.py 1** will use algorithm one as described above  
   
 When combining the parameters, please put the dimensions first, then the algorithm option. 
