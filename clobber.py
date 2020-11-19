@@ -183,7 +183,7 @@ def get_nbrs(B, row, col):
 
 def find_best_move(B):
     #find best move for comp based on the algorithm choice: 
-    #if opt == 0: choose to clobber a white stone that has no white nbrs, or one that has 1 white nbr and 2+ nrs. If none like that exist, pick a random one
+    #if opt == 0: choose to clobber a white stone that has no white nbrs, or one that has 1 white nbr and 2+ black nbrs. If none like that exist, pick a random one
     #if opt == 1: use longest connected component of opponent's stones
     #if opt == 2: use shortest connected component of opponent's stones
     #if opt == 3: find random move
