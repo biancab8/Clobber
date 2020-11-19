@@ -1,6 +1,6 @@
 ## Clobber
 
-### Here's a video that shows this project in action: https://share.vidyard.com/watch/dGDxjrLAaacmhjFA21vQMs?
+### Here is a video that shows this project in action: https://share.vidyard.com/watch/dGDxjrLAaacmhjFA21vQMs?
 
 ### Rules:
 Clobber is best played with two players and takes an average of 15 minutes to play. It is suggested for ages 8 and up. It is typically played on a rectangular white and black checkerboard. Players take turns to move one of their own pieces onto an orthogonally adjacent opposing piece, removing it from the game. The winner of the game is the player who makes the last move (i.e. whose opponent cannot move).
