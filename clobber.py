@@ -151,13 +151,57 @@ def get_path_length(B, row, col):
             length += 1
             add = False 
     return length
-     
+    
+def get_nbrs(B, row, col):
+    nbrs = [0,0,[]]   #[nr of white nbrs, nr of black nbrs, [black nbr row, black nbr col]]
+    if row > 0:
+        color = B[row-1][col]
+        if color != 0: #white or black
+            nbrs[color-1] += 1
+            if color == comp:
+                nbrs[2] = [row-1, col]
+    if col > 0:
+        color = B[row][col-1]
+        if color != 0: #white or black
+            nbrs[color-1] += 1
+            if color == comp:
+                nbrs[2] = [row, col-1]
+    if row < dim[0] - 1:
+        color = B[row+1][col]
+        if color != 0: #white or black
+            nbrs[color-1] += 1
+            if color == comp:
+                nbrs[2] = [row+1, col]
+    if col < dim[1] -1:
+        color = B[row][col+1]
+        if color != 0: #white or black
+            nbrs[color-1] += 1
+            if color == comp:
+                nbrs[2] = [row, col+1]
+    return nbrs
+
 
 def find_best_move(B):
     #find best move for comp based on the algorithm choice: 
+    #if opt == 0: choose to clobber a white stone that has no white nbrs, or one that has 1 white nbr and 2+ nrs. If none like that exist, pick a random one
     #if opt == 1: use longest connected component of opponent's stones
     #if opt == 2: use shortest connected component of opponent's stones
     #if opt == 3: find random move
+    global opt 
+    switch_opt = False
+    if opt == 0:
+        for row in range(dim[0]):
+            for col in range(dim[1]):
+                if B[row][col] == 1:
+                    nbrs = get_nbrs(B, row, col)
+                    #if i can reach white stone that has no white nbrs OR a white stone with 1 white nbr and 2+ black nrbs: clobber this one (can win this group)
+                    if (nbrs[0] == 0 and nbrs[1] > 0) or (nbrs[0] == 1 and nbrs[1] > 1):  
+                        best_cell_so_far = [row, col]
+                        best_move_from = nbrs[2]
+                        return [best_move_from, best_cell_so_far]
+        #if none with those properties: pick random one...so set opt = 3, let it do it's thing, and switch back to opt = 0 after 
+        opt = 3
+        switch_opt = True 
     if opt == 3: 
         go = True
         while go == True:
@@ -185,6 +229,8 @@ def find_best_move(B):
                     elif opt == 2 and length < best_len_so_far:
                         best_len_so_far = length 
                         best_cell_so_far = [row,col]
+    if switch_opt == True: 
+        opt = 0
     best_move_from = check_if_no_neighbors(B, best_cell_so_far[0], best_cell_so_far[1], p1, 1)
     return [best_move_from, best_cell_so_far]
 
