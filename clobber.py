@@ -29,7 +29,7 @@ if len_args > 3 and sys.argv[3].isnumeric() and int(sys.argv[3]) > 0 and int(sys
 elif len_args == 2 and sys.argv[1].isnumeric():
     opt = int(sys.argv[1])
 else:
-    opt = 2 #default: shortest connected component algo 
+    opt = 1 #default: largest connected component algo 
 
 def check_finished(B):
     #check if there are any moves left to make, ie if a black and white cell are on horizontally or vertically adjacent cells
