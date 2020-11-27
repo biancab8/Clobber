@@ -9,6 +9,8 @@ from collections import deque
     #opt = 3: comp will randomly choose a white stone to clobber
 # -> default: 5x5 board, opt = 2
 
+black = 0
+white = 0
 p1,comp,empty = 1,2,0 
 board_colors = [(0,250,154),(119,136,153),(255,0,0)]  # squares colors
 player_colors = [(255,255,255),(0,0,0)]  # white, black
@@ -151,13 +153,57 @@ def get_path_length(B, row, col):
             length += 1
             add = False 
     return length
-     
+    
+def get_nbrs(B, row, col):
+    nbrs = [0,0,[]]   #[nr of white nbrs, nr of black nbrs, [black nbr row, black nbr col]]
+    if row > 0:
+        color = B[row-1][col]
+        if color != 0: #white or black
+            nbrs[color-1] += 1
+            if color == comp:
+                nbrs[2] = [row-1, col]
+    if col > 0:
+        color = B[row][col-1]
+        if color != 0: #white or black
+            nbrs[color-1] += 1
+            if color == comp:
+                nbrs[2] = [row, col-1]
+    if row < dim[0] - 1:
+        color = B[row+1][col]
+        if color != 0: #white or black
+            nbrs[color-1] += 1
+            if color == comp:
+                nbrs[2] = [row+1, col]
+    if col < dim[1] -1:
+        color = B[row][col+1]
+        if color != 0: #white or black
+            nbrs[color-1] += 1
+            if color == comp:
+                nbrs[2] = [row, col+1]
+    return nbrs
+
 
 def find_best_move(B):
     #find best move for comp based on the algorithm choice: 
+    #if opt == 0: choose to clobber a white stone that has no white nbrs, or one that has 1 white nbr and 2+ black nbrs. If none like that exist, pick a random one
     #if opt == 1: use longest connected component of opponent's stones
     #if opt == 2: use shortest connected component of opponent's stones
     #if opt == 3: find random move
+    global opt 
+    switch_opt = False
+    if opt == 0:
+        for row in range(dim[0]):
+            for col in range(dim[1]):
+                if B[row][col] == 1:
+                    nbrs = get_nbrs(B, row, col)
+                    #if i can reach white stone that has no white nbrs OR a white stone with 1 white nbr and 2+ black nrbs: clobber this one (can win this group)
+                    if (nbrs[0] == 0 and nbrs[1] > 0) or (nbrs[0] == 1 and nbrs[1] > 1):  
+                        best_cell_so_far = [row, col]
+                        best_move_from = nbrs[2]
+                        return [best_move_from, best_cell_so_far]
+        #if none with those properties: pick random one...so set opt = 3, let it do it's thing, and switch back to opt = 0 after 
+        opt = 3
+        switch_opt = True 
     if opt == 3: 
         go = True
         while go == True:
@@ -185,16 +231,49 @@ def find_best_move(B):
                     elif opt == 2 and length < best_len_so_far:
                         best_len_so_far = length 
                         best_cell_so_far = [row,col]
+    if switch_opt == True: 
+        opt = 0
     best_move_from = check_if_no_neighbors(B, best_cell_so_far[0], best_cell_so_far[1], p1, 1)
     return [best_move_from, best_cell_so_far]
 
 
+def find_best_move_comp(B):
+    #find best move for comp based on the algorithm choice: 
+    #if opt == 0: choose to clobber a white stone that has no white nbrs, or one that has 1 white nbr and 2+ black nbrs. If none like that exist, pick a random one
+    #if opt == 1: use longest connected component of opponent's stones
+    #if opt == 2: use shortest connected component of opponent's stones
+    #if opt == 3: find random move
+    global opt 
+    if opt == 3: 
+        go = True
+        while go == True:
+            rowIdx = random.randint(0,dim[0]-1)
+            colIdx = random.randint(0,dim[1]-1)
+            # print(rowIdx, colIdx)
+            if B[rowIdx][colIdx] == 2 and check_if_no_neighbors(B, rowIdx, colIdx, comp, 0) == False: 
+                best_cell_so_far = [rowIdx, colIdx]
+                go = False
+    best_move_from = check_if_no_neighbors(B, best_cell_so_far[0], best_cell_so_far[1], comp, 1)
+    return [best_move_from, best_cell_so_far]
+
+
+
+
+
 def displayWinner(player, screen):
+    global white
+    global black 
     if player == 1:
         winner = "Black"
     else:
         winner = "White"
     displayText(screen, "Game Over", winner + " wins", "bottom")
+    print(winner)
+    if winner == "Black":
+        black += 1
+    else: 
+        white += 1
+    print("score -> black: ",black, "white: ", white )
 
 
 def main():
@@ -214,9 +293,20 @@ def main():
     square_selected = False
     cont = True
     moves =0
+    count = 0
+    keepgoing = True
     while cont:
-        if check_finished(B) == True:  # check if win
+        
+        if keepgoing == True and check_finished(B) == True:  # check if win
             displayWinner(player, screen)
+            keepgoing = False
+            event = pygame.event.Event(pygame.KEYDOWN, unicode="a", key=pygame.K_a, mod=pygame.KMOD_NONE) #create the event
+            pygame.event.post(event) #add the event to the queue
+            count += 1
+            player = 1
+            print(count)
+
+            # break
         pygame.display.flip() # display screen
         clock.tick(60) # limit to 60 frames per second
         play = False
@@ -225,44 +315,37 @@ def main():
             if event.type == pygame.QUIT: 
                 pygame.quit()
                 sys.exit() 
-            elif event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE: # start over
+            # elif event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE: # start over
+            elif event.type == pygame.KEYDOWN and event.key == pygame.K_a: 
                 screen.fill(background_color)
                 B = setInitialBoard([], players, screen)
                 player = p1
                 square_selected = False
                 moves =0
                 pygame.display.flip() # display screen
-            elif player == 1 and event.type == pygame.MOUSEBUTTONDOWN:
+            # elif player == 1 and event.type == pygame.MOUSEBUTTONDOWN:
+            else: #player == 1 and event.type == pygame.MOUSEBUTTONDOWN:
                 play = True
             
-        #human to move
-        if player == 1 and play == True: 
-                click_posn = pygame.mouse.get_pos()
-                if click_posn[0] < square_size * dim[1] and click_posn[1] < square_size * dim[0]: #if click within bounds of board
-                    idx_col = click_posn[0] // square_size 
-                    idx_row = click_posn[1] // square_size 
-                    if player == B[idx_row][idx_col]:   # check if player clicked own stone
-                        if square_selected != False:       # picks different (own) stone
-                            eraseSquare(square_selected, screen, B) # erase red background from previously selected stone
-                            placeStone(square_selected, player, screen, B) # fill again with correct stone 
-                        square_selected = (idx_row,idx_col)  #newly selected stone
-                        screen.fill(board_colors[2], (idx_col * square_size, idx_row * square_size,square_size,square_size))  #paint red
-                        placeStone((idx_row, idx_col), player, screen, B)
-                    elif B[idx_row][idx_col] != empty and player != B[idx_row][idx_col] and square_selected != False:  #if chose opponent's stone to capture
-                        if (idx_row == square_selected[0] and (square_selected[1]-1 <= idx_col <= square_selected[1] +1)) or (idx_col == square_selected[1] and (square_selected[0] -1<= idx_row <= square_selected[0] +1)): #check if legal move, ie verical or horizontal neighbor
-                            eraseSquare(square_selected, screen, B) #erase square from which player moved their stone
-                            placeStone((idx_row,idx_col), player, screen, B) #replace opponent's stone with own
-                            B[idx_row][idx_col] = player #update board state
-                            moves += 1
-                            screen.fill(background_color, (size[0]-170,0,size[0],170))
-                            displayText(screen, "Moves: ", str(moves), "top") #update nr of moves
-                            if player == p1: 
-                                player = comp
-                            else: 
-                                player = p1
-                            square_selected = False
+        #human to move -- use random player
+        if  check_finished(B) == False and player == 1 and play == True: 
+            global opt
+            keepgoing = True
+            opt = 3
+            move = find_best_move_comp(B)
+            move_from = move[0]
+            move_to = move[1]
+            screen.fill(board_colors[2], (move_from[1] * square_size, move_from[0] * square_size,square_size,square_size))
+            placeStone((move_to[0], move_to[1]), 1, screen, B)
+            eraseSquare(move_from, screen, B) #erase square from which player moved their stone
+            if check_finished(B) == False: 
+                play = True
+            player = comp
+            opt = 0
+            
         # computer to move
-        if check_finished(B) == False and player == comp and play == True:
+        if keepgoing == True and check_finished(B) == False and player == comp and play == True:
+            opt = 0
             move = find_best_move(B)
             move_from = move[0]
             move_to = move[1]
@@ -271,6 +354,9 @@ def main():
             eraseSquare(move_from, screen, B) #erase square from which player moved their stone
             play = False
             player = 1
+            if check_finished(B) == True: 
+                play = False
+                
 
     # Close game if click x
     if event.type == pygame.QUIT:
